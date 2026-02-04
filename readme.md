@@ -27,6 +27,10 @@ npm start
 ```
 Visit `http://localhost:3000` to start managing your recipes.
 
+## Repository Remotes
+
+For safety, the `upstream` remote is configured for fetch only, with push disabled (set to `no_push`). This prevents accidental pushes to the sample repository.
+
 ## License
 
 This project is licensed under the terms of the MIT open source license. Please refer to [MIT](https://github.com/github-samples/node-recipe-app/blob/main/LICENSE) for the full terms.
