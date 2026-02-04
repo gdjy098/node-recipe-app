@@ -1,0 +1,10 @@
+<div class="profile-container">
+    <h1>Profile</h1>
+
+    {{#if user}}
+        <p>Signed in as <strong>{{user.username}}</strong>.</p>
+        <p>Your saved recipes will appear here once the favorites feature is added.</p>
+    {{else}}
+        <p>Please <a href="/login">login</a> to view your profile.</p>
+    {{/if}}
+</div>

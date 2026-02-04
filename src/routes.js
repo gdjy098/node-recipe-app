@@ -1,7 +1,15 @@
 const express = require('express')
+const bcrypt = require('bcryptjs')
 const { getDbConnection } = require('./database')
 
 const router = express.Router()
+
+function requireAuth(req, res, next) {
+	if (!req.session.user) {
+		return res.redirect('/login')
+	}
+	return next()
+}
 
 router.get('/', (req, res) => {
 	res.render('home', { title: 'Recipe App' })
@@ -18,6 +26,66 @@ router.get('/recipes/:id', async (req, res) => {
 	const recipeId = req.params.id
 	const recipe = await db.get('SELECT * FROM recipes WHERE id = ?', [recipeId])
 	res.render('recipe', { recipe })
+})
+
+router.get('/register', (req, res) => {
+	res.render('register')
+})
+
+router.post('/register', async (req, res) => {
+	const db = await getDbConnection()
+	const { username, password } = req.body
+
+	if (!username || !password) {
+		return res.render('register', { error: 'Username and password are required.' })
+	}
+
+	const existingUser = await db.get('SELECT * FROM users WHERE username = ?', [username])
+	if (existingUser) {
+		return res.render('register', { error: 'Username already exists.' })
+	}
+
+	const passwordHash = await bcrypt.hash(password, 10)
+	await db.run('INSERT INTO users (username, password_hash) VALUES (?, ?)', [username, passwordHash])
+	const createdUser = await db.get('SELECT id, username FROM users WHERE username = ?', [username])
+	req.session.user = { id: createdUser.id, username: createdUser.username }
+	return res.redirect('/profile')
+})
+
+router.get('/login', (req, res) => {
+	res.render('login')
+})
+
+router.post('/login', async (req, res) => {
+	const db = await getDbConnection()
+	const { username, password } = req.body
+
+	if (!username || !password) {
+		return res.render('login', { error: 'Username and password are required.' })
+	}
+
+	const user = await db.get('SELECT * FROM users WHERE username = ?', [username])
+	if (!user) {
+		return res.render('login', { error: 'Invalid username or password.' })
+	}
+
+	const passwordMatches = await bcrypt.compare(password, user.password_hash)
+	if (!passwordMatches) {
+		return res.render('login', { error: 'Invalid username or password.' })
+	}
+
+	req.session.user = { id: user.id, username: user.username }
+	return res.redirect('/profile')
+})
+
+router.post('/logout', (req, res) => {
+	req.session.destroy(() => {
+		res.redirect('/')
+	})
+})
+
+router.get('/profile', requireAuth, async (req, res) => {
+	res.render('profile', { user: req.session.user })
 })
 
 router.post('/recipes', async (req, res) => {

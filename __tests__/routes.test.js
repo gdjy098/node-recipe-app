@@ -1,5 +1,6 @@
 const request = require('supertest');
 const express = require('express');
+const session = require('express-session');
 const routes = require('../src/routes');
 const { initializeTestDb } = require('./test-database');
 
@@ -13,6 +14,15 @@ function createTestApp() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  app.use(
+    session({
+      secret: 'test-session-secret',
+      resave: false,
+      saveUninitialized: false,
+      cookie: { httpOnly: true },
+    })
+  );
   
   // Simple mock for res.render
   app.use((req, res, next) => {
@@ -63,6 +73,37 @@ describe('Routes', () => {
     const recipe = await db.get('SELECT * FROM recipes WHERE title = ?', [newRecipe.title]);
     expect(recipe).toBeDefined();
     expect(recipe.title).toBe(newRecipe.title);
+  });
+
+  test('POST /register should create a new user and redirect to profile', async () => {
+    const response = await request(app)
+      .post('/register')
+      .send({ username: 'testuser', password: 'password123' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/profile');
+
+    const user = await db.get('SELECT * FROM users WHERE username = ?', ['testuser']);
+    expect(user).toBeDefined();
+  });
+
+  test('POST /login should authenticate and redirect to profile', async () => {
+    await request(app)
+      .post('/register')
+      .send({ username: 'loginuser', password: 'password123' });
+
+    const response = await request(app)
+      .post('/login')
+      .send({ username: 'loginuser', password: 'password123' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/profile');
+  });
+
+  test('GET /profile should redirect to login when not authenticated', async () => {
+    const response = await request(app).get('/profile');
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/login');
   });
 
     test('POST /recipes/:id/delete should delete a recipe', async () => {
