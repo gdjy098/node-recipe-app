@@ -64,4 +64,27 @@ describe('Routes', () => {
     expect(recipe).toBeDefined();
     expect(recipe.title).toBe(newRecipe.title);
   });
+
+    test('POST /recipes/:id/delete should delete a recipe', async () => {
+      // 先插入一条菜谱
+      const recipe = {
+        title: 'Delete Me',
+        ingredients: 'To be deleted',
+        method: 'To be deleted'
+      };
+      await request(app).post('/recipes').send(recipe);
+      const created = await db.get('SELECT * FROM recipes WHERE title = ?', [recipe.title]);
+      expect(created).toBeDefined();
+
+      // 执行删除
+      const response = await request(app)
+        .post(`/recipes/${created.id}/delete`)
+        .send();
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('/recipes');
+
+      // 验证已删除
+      const deleted = await db.get('SELECT * FROM recipes WHERE id = ?', [created.id]);
+      expect(deleted).toBeUndefined();
+    });
 });
