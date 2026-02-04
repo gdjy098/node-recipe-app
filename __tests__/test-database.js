@@ -23,6 +23,13 @@ async function createTables(db) {
     ingredients TEXT,
     method TEXT
   )`)
+
+	// Create the 'users' table for authentication
+	await db.exec(`CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+		username TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL
+	)`)
 }
 
 module.exports = { getTestDbConnection, initializeTestDb }

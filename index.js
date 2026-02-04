@@ -1,5 +1,6 @@
 const express = require('express')
 const exphbs = require('express-handlebars')
+const session = require('express-session')
 const { initializeDb } = require('./src/database')
 const routes = require('./src/routes')
 
@@ -9,6 +10,20 @@ const PORT = process.env.PORT || 3000
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static('public'))
+
+app.use(
+	session({
+		secret: process.env.SESSION_SECRET || 'dev-session-secret',
+		resave: false,
+		saveUninitialized: false,
+		cookie: { httpOnly: true },
+	})
+)
+
+app.use((req, res, next) => {
+	res.locals.currentUser = req.session.user || null
+	next()
+})
 
 app.engine(
 	'hbs',
